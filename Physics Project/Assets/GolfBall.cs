@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
-
+using System;
 
 public class GolfBall : MonoBehaviour {
 
@@ -104,8 +104,9 @@ public class GolfBall : MonoBehaviour {
             ballText.text = "Win! Points: " + score;
             //gm.height = 0;
             //gm.strokePower = 0;
-            Invoke("ClearBallText", 2);
-            LoadScene("Title");
+            Invoke("ClearBallText", 5);
+            StartCoroutine(EndGame());
+            
               
         }
         else if (targetsHit < 3 && strokesRemaining == 0)
@@ -113,7 +114,7 @@ public class GolfBall : MonoBehaviour {
             target = null;
             //game over display score
             ballText.text = "Loose! Points: " + score;
-            Invoke("ClearBallText", 2);
+            Invoke("ClearBallText", 5);
             LoadScene("Title");
         }
 
@@ -147,6 +148,12 @@ public class GolfBall : MonoBehaviour {
        
 		
 	}
+
+    IEnumerator EndGame()
+    {
+        yield return new WaitForSeconds(5);
+        LoadScene("Title");
+    }
 
     private void OnTriggerEnter(Collider other)
     {
