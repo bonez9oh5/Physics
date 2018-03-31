@@ -38,7 +38,7 @@ public class GolfBall : MonoBehaviour {
     int strokesRemaining = 10;
     int score = 0;
     float angle = 45.0f;
-    bool inBunker;
+    //bool inBunker;
     public bool isGrounded = false;
     public bool putting;
     public bool fireBall;
@@ -85,12 +85,13 @@ public class GolfBall : MonoBehaviour {
 
         scoreText.text = "Score: " + score;
         strokesText.text = "Strokes: " + strokesRemaining;
+        
 
-        if (powerSlider.value >= 0.9f || powerSlider.value <=1.1f)
+        if (powerSlider.value >= 0.9f && powerSlider.value <=1.1f)
         {
             timeToTarget = 1;
         }
-        else
+        else if (powerSlider.value < 0.9f || powerSlider.value > 1.1f)
         {
             timeToTarget = powerSlider.value;
         }
@@ -125,15 +126,23 @@ public class GolfBall : MonoBehaviour {
             particleEffects[2].SetActive(false);
         }
 
-        if (rb.velocity.x==0 && target)
+        if (/*rb.velocity.x==0 &&*/ target)
         {
             //transform.Rotate(0, Input.GetAxis("Horizontal"), 0);
             transform.LookAt(target.transform.position);
-            shootButton.SetActive(true);
         }
-        else if (rb.velocity.x>0||rb.velocity.x<0 || !target)
+        
+
+        if (isGrounded && target)
         {
-            shootButton.SetActive(false);
+            powerSlider.value = Mathf.PingPong(Time.time, 2.0f);
+            
+        }
+        else
+        {
+            powerSlider.value = powerSlider.value;
+            
+            //transform.position = Vector3.MoveTowards(transform.position, target.transform.position, 5 * Time.deltaTime);
         }
        
 		
@@ -185,7 +194,7 @@ public class GolfBall : MonoBehaviour {
             gm.strokePower = 0;
 
             //apply bunker physics
-            inBunker = true;
+            //inBunker = true;
             ballText.text = "Playing in the sand?";
             Invoke("ClearBallText", 2);
 
@@ -197,7 +206,7 @@ public class GolfBall : MonoBehaviour {
     {
         if(other.gameObject.name== "BunkerDetection")
         {
-            inBunker = false;
+            //inBunker = false;
         }
         else if(other.gameObject.name == "GreenDetection")
         {
@@ -211,9 +220,9 @@ public class GolfBall : MonoBehaviour {
             gm.height = 0;
             gm.strokePower = 0;
             isGrounded = true;
-            
-            
-            
+            shootButton.SetActive(true);
+
+
         }
         else if (collision.gameObject.tag == "Target")
         {
@@ -221,7 +230,15 @@ public class GolfBall : MonoBehaviour {
             ballText.text = "FIRE!";
             Invoke("ClearBallText", 2);
             targetsHit += 1;
-            target = targets[targetsHit];
+
+            if (targetsHit < 3)
+            {
+                target = targets[targetsHit];
+            }
+            else
+            {
+                target = null;
+            }
             //switch (targetsHit)
             //{
             //    case 0 : target = targets[0];
@@ -233,12 +250,28 @@ public class GolfBall : MonoBehaviour {
             //}
             score += 10;
         }
+        else if ( collision.gameObject.tag == "Boundary")
+        {
+            transform.position = lastPosition.position;
+        }
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        if (collision.gameObject.name == "Terrain")
+        {
+            //gm.height = 0;
+            //gm.strokePower = 0;
+            isGrounded = false;
+            shootButton.SetActive(false);
+        }
     }
 
     public void ApplyForce()
     {
-        lastPosition = transform;
-
+        lastPosition.position = transform.position;
+        strokesRemaining--;
+        
         
         
         if (fireBall == true)
@@ -254,6 +287,7 @@ public class GolfBall : MonoBehaviour {
         distance += heightDiff / Mathf.Tan(a);
         float velocity = Mathf.Sqrt(distance * Physics.gravity.magnitude / Mathf.Sin(2 * a));
         rb.velocity = (velocity * direction.normalized) * timeToTarget;
+        
 
         
     }
