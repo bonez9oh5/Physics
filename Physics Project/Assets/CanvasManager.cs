@@ -26,24 +26,24 @@ public class CanvasManager : MonoBehaviour {
 	void Update () {
 
 
-        if (ball.putting == true)
-        {
-            gm.height = 0;
-            gm.strokePower = powerSlider.value;
-        }
-        else if (ball.inBunker == true)
-        {
-            gm.height = heightSlider.value / 2;
-            gm.strokePower = powerSlider.value / 2;
-        }
-        else
-        {
+        //if (ball.putting == true)
+        //{
+        //    gm.height = 0;
+        //    gm.strokePower = powerSlider.value;
+        //}
+        //else if (ball.inBunker == true)
+        //{
+        //    gm.height = heightSlider.value / 2;
+        //    gm.strokePower = powerSlider.value / 2;
+        //}
+        //else
+        //{
 
-            gm.height = heightSlider.value;
+        //    gm.height = heightSlider.value;
 
-            gm.strokePower = powerSlider.value;
+        //    gm.strokePower = powerSlider.value;
 
-        }
+        //}
         
 
         

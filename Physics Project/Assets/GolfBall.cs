@@ -1,42 +1,63 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 
 public class GolfBall : MonoBehaviour {
 
 
-    public GameManager gm;
-    Rigidbody rb;
+    
     [SerializeField]
-    public Terrain ground;
-    public bool isGrounded = false;
-    public bool putting;
-    public bool fireBall;
-    Transform lastPosition ;
-    Transform currentPosition;
+    Terrain ground;
     [SerializeField]
     GameObject[] particleEffects;
     [SerializeField]
     GameObject shootButton;
-    public bool inBunker;
     [SerializeField]
-    Transform target;
+    GameObject target;
     [SerializeField]
     GameObject[] targets;
-    int targetsHit;
+    [SerializeField]
+    Slider powerSlider;
+    [SerializeField]
+    Text scoreText;
+    [SerializeField]
+    Text strokesText;
+
     [SerializeField]
     float timeToTarget;
     
+
+    public GameManager gm;
+    Rigidbody rb;
+
+    int targetsHit = 0;
+    int strokesRemaining = 10;
+    int score = 0;
+    float angle = 45.0f;
+    bool inBunker;
+    public bool isGrounded = false;
+    public bool putting;
+    public bool fireBall;
+    Transform lastPosition;
+    Transform currentPosition;
+
+
     TextMeshPro ballText;
     
-	// Use this for initialization
-	void Start () {
+    
+
+    // Use this for initialization
+    void Start () {
         ballText = GetComponentInChildren<TextMeshPro>();
         currentPosition = transform;
         lastPosition = currentPosition;
         gm = FindObjectOfType<GameManager>();
+        targets = GameObject.FindGameObjectsWithTag("Target");
+        target = targets[0];
 
 #region EXCEPTION_CHECKS
         if (!gm)
@@ -62,6 +83,39 @@ public class GolfBall : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
+        scoreText.text = "Score: " + score;
+        strokesText.text = "Strokes: " + strokesRemaining;
+
+        if (powerSlider.value >= 0.9f || powerSlider.value <=1.1f)
+        {
+            timeToTarget = 1;
+        }
+        else
+        {
+            timeToTarget = powerSlider.value;
+        }
+
+
+        if (targetsHit == 3 && strokesRemaining > 0)
+        {
+            target = null;
+            //win display score
+            ballText.text = "Win! Points: " + score;
+            //gm.height = 0;
+            //gm.strokePower = 0;
+            Invoke("ClearBallText", 2);
+            LoadScene("Title");
+              
+        }
+        else if (targetsHit < 3 && strokesRemaining == 0)
+        {
+            target = null;
+            //game over display score
+            ballText.text = "Loose! Points: " + score;
+            Invoke("ClearBallText", 2);
+            LoadScene("Title");
+        }
+
         if (fireBall == true)
         {
             particleEffects[2].SetActive(true);
@@ -71,12 +125,13 @@ public class GolfBall : MonoBehaviour {
             particleEffects[2].SetActive(false);
         }
 
-        if (rb.velocity.x==0)
+        if (rb.velocity.x==0 && target)
         {
-            transform.Rotate(0, Input.GetAxis("Horizontal"), 0);
+            //transform.Rotate(0, Input.GetAxis("Horizontal"), 0);
+            transform.LookAt(target.transform.position);
             shootButton.SetActive(true);
         }
-        else if (rb.velocity.x>0||rb.velocity.x<0)
+        else if (rb.velocity.x>0||rb.velocity.x<0 || !target)
         {
             shootButton.SetActive(false);
         }
@@ -86,16 +141,20 @@ public class GolfBall : MonoBehaviour {
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.name == "HoleDetection")
-        {
-            ballText.text="ball in, it took " + gm.strokesToHole + "strokes!";
-            gm.height = 0;
-            gm.strokePower = 0;
-            //transition to next scene/hole 
-            //if holesPlayed == 18 finish game and display stats
-        }
+        //if (other.gameObject.name == "HoleDetection" && targetsHit == 2)
+        //{
+        //    ballText.text="ball in, it took " + gm.strokesToHole + "strokes!";
+        //    gm.height = 0;
+        //    gm.strokePower = 0;
+        //    Invoke("ClearBallText", 2);
+        //    LoadScene("Title");
+        //    //transition to next scene/hole 
+        //    //if holesPlayed == 18 finish game and display stats
+        //}
+
+
         
-        else if (other.gameObject.name == "WaterHazard")
+        if (other.gameObject.name == "WaterHazard")
         {
             //splash
             particleEffects[0].SetActive(true);
@@ -113,7 +172,7 @@ public class GolfBall : MonoBehaviour {
             gm.height = 0;
             gm.strokePower = 0;
             //enable putting only
-            putting = true;
+            //putting = true;
             ballText.text = "On Green! Good Shot!";
             Invoke("ClearBallText", 2);
         }
@@ -156,25 +215,47 @@ public class GolfBall : MonoBehaviour {
             
             
         }
-        else if (collision.gameObject.name == "FireballPowerUp")
+        else if (collision.gameObject.tag == "Target")
         {
             fireBall = true;
             ballText.text = "FIRE!";
             Invoke("ClearBallText", 2);
+            targetsHit += 1;
+            target = targets[targetsHit];
+            //switch (targetsHit)
+            //{
+            //    case 0 : target = targets[0];
+            //        break;
+            //    case 1: target = targets[1];
+            //        break;
+            //    case 2: target = targets[2];
+            //        break;
+            //}
+            score += 10;
         }
     }
 
     public void ApplyForce()
     {
         lastPosition = transform;
+
+        
+        
         if (fireBall == true)
         {
             particleEffects[2].SetActive(true);
         }
-        Vector3 direction = target.position - transform.position;
+        Vector3 direction = target.transform.position - transform.position;
+        float heightDiff = direction.y;
+        direction.y = 0;
+        float distance = Mathf.Abs(direction.magnitude);
+        float a = angle * Mathf.Deg2Rad;
+        direction.y = distance * Mathf.Tan(a);
+        distance += heightDiff / Mathf.Tan(a);
+        float velocity = Mathf.Sqrt(distance * Physics.gravity.magnitude / Mathf.Sin(2 * a));
+        rb.velocity = (velocity * direction.normalized) * timeToTarget;
+
         
-        rb.AddForce(transform.forward * gm.strokePower);
-        rb.AddForce(transform.up * gm.height);
     }
 
     void StopEffects()
@@ -196,5 +277,10 @@ public class GolfBall : MonoBehaviour {
     void ClearBallText()
     {
         ballText.text = "";
+    }
+
+    void LoadScene(string level)
+    {
+        SceneManager.LoadScene(level);
     }
 }
